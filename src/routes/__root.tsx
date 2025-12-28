@@ -1,12 +1,16 @@
-import { HeadContent, Scripts, createRootRoute } from '@tanstack/react-router'
+import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { ThemeProvider } from '@/components/theme/theme-provider'
 
-import Header from '../components/Header'
+
 
 import appCss from '../styles.css?url'
+import { QueryClient } from '@tanstack/react-query';
 
-export const Route = createRootRoute({
+
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
       {
@@ -28,8 +32,27 @@ export const Route = createRootRoute({
     ],
   }),
 
-  shellComponent: RootDocument,
+component: RootComponent,
+notFoundComponent: () => {
+    return <div>404 - Not Found!</div>
+  },
+
 })
+
+function RootComponent() {
+  return (
+    <RootDocument>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange={false}
+      >
+        <Outlet />
+      </ThemeProvider>
+    </RootDocument>
+  );
+}
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
@@ -38,7 +61,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <Header />
+        
         {children}
         <TanStackDevtools
           config={{
@@ -49,6 +72,10 @@ function RootDocument({ children }: { children: React.ReactNode }) {
               name: 'Tanstack Router',
               render: <TanStackRouterDevtoolsPanel />,
             },
+            {
+              name: 'React Query',
+              render: <ReactQueryDevtools  />,
+            }
           ]}
         />
         <Scripts />

@@ -9,13 +9,20 @@ import { cloudflare } from '@cloudflare/vite-plugin'
 const config = defineConfig({
   plugins: [
     devtools(),
-    cloudflare({ viteEnvironment: { name: 'ssr' } }),
-    // this is the plugin that enables path aliases
+    cloudflare({ 
+      viteEnvironment: { name: 'ssr' },
+      persistState: true,
+      configPath: './wrangler.jsonc',
+    }),
     viteTsConfigPaths({
       projects: ['./tsconfig.json'],
     }),
     tailwindcss(),
-    tanstackStart(),
+    tanstackStart({
+      srcDirectory: 'src',
+      start: { entry: "./start.tsx" },
+      server: { entry: "./server.ts" },
+    }),
     viteReact(),
   ],
 })
