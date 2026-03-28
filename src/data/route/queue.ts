@@ -24,16 +24,44 @@ export async function handleLinkClick(env:Env, event:LinkClickMessageType,db:Dat
 // and schedule the destinaion workflow using durable object alarm 
 
 
+/**
+ * Optimized background click capture
+ * - Sends click to queue for async processing (DB insert + workflow scheduling)
+ * - Sends to Durable Object for real-time WebSocket broadcast
+ * - Non-blocking: both operations run in parallel
+ */
 export async function captureLinkClickInBackground(env: Env, event: LinkClickMessageType) {
-  console.log('Capturing link click in background:', event.data.latitude, event.data.longitude);
-	await env.LINK_QUEUE.send(event)
-	const doId = env.LINK_CLICK_TRACKER_OBJECT.idFromName(event.data.accountId);
-	const stub = env.LINK_CLICK_TRACKER_OBJECT.get(doId);
-	if (!event.data.latitude || !event.data.longitude || !event.data.country) return
-	await stub.addClick(
-		event.data.latitude,
-		event.data.longitude,
-		event.data.country,
-		moment().valueOf()
-	)
+  const { latitude, longitude, country, accountId } = event.data;
+  
+  // Only send to Durable Object if we have geo data
+  const hasGeoData = latitude !== undefined && longitude !== undefined && country;
+  
+  // Run queue send and DO update in parallel for speed
+  const promises: Promise<void>[] = [
+    // Always send to queue - handled by separate queue consumer worker
+    env.LINK_QUEUE.send(event).catch((err) => {
+      console.error('Failed to send to queue:', err);
+    }),
+  ];
+
+  // Only update DO for real-time WebSocket broadcast if we have geo data
+  if (hasGeoData) {
+    // Use correct binding name: LINK_CLICK_TRACKER (not LINK_CLICK_TRACKER_OBJECT)
+    const doId = env.LINK_CLICK_TRACKER.idFromName(accountId);
+    const stub = env.LINK_CLICK_TRACKER.get(doId);
+    
+    promises.push(
+      stub.addClick(
+        latitude as number,
+        longitude as number,
+        country as string,
+        moment().valueOf()
+      ).catch((err) => {
+        console.error('Failed to send to DO:', err);
+      })
+    );
+  }
+
+  // Wait for both operations - they run in parallel
+  await Promise.all(promises);
 }
