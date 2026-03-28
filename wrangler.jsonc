@@ -25,16 +25,8 @@
 		"remote": true
 	},
 	"queues": {
-		"consumers": [
-			{
-				"queue": "link-smart-queue",
-				"dead_letter_queue": "link-smart-queue-dead"
-			},
-			{
-				"queue": "link-smart-queue-dead",
-				"retry_delay": 0
-			}
-		],
+		// Queue consumers have been moved to a separate worker (smart-links-queue-consumer)
+		// This keeps the main worker responsive for web requests
 		"producers": [
 			{
 				"queue": "link-smart-queue",

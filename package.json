@@ -12,6 +12,8 @@
 		"db:studio": "drizzle-kit studio",
 		"test": "vitest run",
 		"deploy": "npm run build && wrangler deploy",
+		"deploy:queue-consumer": "wrangler deploy --config wrangler.queue-consumer.jsonc",
+		"deploy:all": "npm run deploy && npm run deploy:queue-consumer",
 		"preview": "npm run build && vite preview",
 		"cf-typegen": "wrangler types"
 	},
